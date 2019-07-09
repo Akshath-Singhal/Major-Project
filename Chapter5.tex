@@ -1,0 +1,32 @@
+\begin{spacing}{2}
+Implementation of aerial swarm requires development of autonomous unmanned aerial vehicles, intra-swarm communication system and swarming algorithms.
+\section{Aerial Vehicle}
+The unmanned aerial vehicle developed for the aerial swarm was PID tuned for autonomous flights in the presence of a GPS and navigation unit. The system was made capable of off-board control using mavros and python scripts running on the on-board computer which communicates with the flight controller over the serial interface using GPIO pins on raspberry pi.
+
+\section{Intra-swarm Communication}
+Intra-swarm communication is implemented by configuring the wireless interface on raspberry pi as ad-hoc network and using python scripts to create UDP sockets for data transfer. This configuration enables vehicles to connect to a common network which is self organising in nature. The use of WiFi ad-hoc network for data transfer enables transferring the information throughout the swarm in real time thus allowing for cooperation in a decentralised fashion. Refer Appendix B for detailed configuration files.
+
+\section{Algorithms}
+There exist numerous algorithms for swarming applications which ensure formation flight and swarm behaviour while avoiding collisions between vehicles and with the environment. The authors of \cite{kim2006decentralized} have studied the use of artificial potential fields for swarm behaviour and collision avoidance by using distance dependent attracting and repulsive fields. The use of optimal control strategy for flocking (aggregation) has been studied in \cite{saif2014flocking}.
+\subsection{Formation Flight}
+The formation control refers to the problem of swarm being able to follow a given path and avoid collision while maintaining its pattern formation. There exists numerous ways in which this can be achieved. \\The most commonly used approach is leader-follower approach. In leader-follower approach, the pattern formation takes place by maintaining a specified distance and orientation from the leader. This ensures that the vehicles maintain a formation throughout the mission. However, loss of the leader can lead to failure of the whole swarm.\\ This led to formulation of virtual leader approach in which a virtual leader is simulated and all the vehicles maintain a particular relative distance and orientation. 
+\\ The use of decentralised approaches depending on the immediate neighbourhood instead of a leader are a little computationally expensive but more robust, scalable and less prone to errors.
+
+The basic equation for artificial potential field methods is given as:
+\begin{equation}
+    u_i = \sum_{j \in \Lambda_i} a (x_i - x_j)
+    \label{eq:swarmpf}
+\end{equation}
+where $u_i$ is the velocity of $i^{th}$ vehicle, $x_i$ is the position of $i^{th}$ vehicle and $a$ is a function which defines the behaviour of field. 
+
+\subsection{Aggregation}
+The use of a attractive potential field from each neighbouring vehicle leads to aggregation or flocking of the vehicles, attracting them towards each other. Aggregation can be achieved using a negative value of $a$ in Eq \ref{eq:swarmpf}.
+
+\subsection{Dispersion}
+Presence of repelling potential field from each vehicle to every other vehicle pushes them away from each other leading to dispersion. Dispersion can be achieved using a positive value of $a$ in Eq \ref{eq:swarmpf}.
+
+\subsection{Collision Avoidance}
+Collision Avoidance is ensured by using a short-ranged but high amplitude exponential repelling field. The use of short ranged field ensures that it does not lead to dispersion or affect the swarm behaviour. A high amplitude exponential field helps in ensuring that the probability of collision is minimized.
+Collision Avoidance can be achieved using a distance dependent value of $a$ in Eq \ref{eq:swarmpf}.
+
+\end{spacing}

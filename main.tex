@@ -1,0 +1,117 @@
+\documentclass[a4paper,12pt,oneside]{book}
+\usepackage[utf8]{inputenc}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\usepackage{times}
+\usepackage{geometry}
+\usepackage{cite}
+\usepackage{setspace}
+\usepackage{multicol}
+\usepackage{tocloft}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage[utf8]{inputenc}
+\usepackage[export]{adjustbox}
+\usepackage{wrapfig}
+\usepackage{multirow} 
+\usepackage{rotating}
+\usepackage{chngcntr}
+
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\usepackage[titletoc]{appendix}
+\usepackage{tabu}
+\usepackage{fancyhdr}
+\geometry{a4paper, tmargin=1in, rmargin=1in, bmargin=1in, lmargin=1.5in}
+\usepackage{titlesec}
+\renewcommand\bibname{References}
+%\counterwithout{figure}{chapter}
+\counterwithout{table}{chapter}
+\renewcommand{\thetable}{\Roman{table}}
+
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\centering}
+  {\chaptertitlename\ \thechapter}{20pt}{\Huge}
+  
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}} % for chapters
+\renewcommand\contentsname{\centerline{TABLE OF CONTENTS}}
+\pagestyle{fancy}
+\cfoot{\thepage}
+\rhead{}
+\lhead{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\begin{document}
+\setcounter{tocdepth}{1}
+\mainmatter
+\pagenumbering{roman}
+\addtocontents{toc}{\textbf{Title}\hfill\textbf{Page No.}\par}
+\input{titlepage}
+\newpage
+\addcontentsline{toc}{chapter}{CERTIFICATE}
+\input{certi.tex}
+\newpage
+\addcontentsline{toc}{chapter}{ABSTRACT}
+\input{abstract.tex}
+\newpage
+\addcontentsline{toc}{chapter}{ACKNOWLEDGEMENT}
+\input{ack.tex}
+
+\newpage
+
+\tableofcontents
+\newpage
+\newpage
+\addcontentsline{toc}{chapter}{LIST OF TABLES}
+\listoftables
+\newpage
+\addcontentsline{toc}{chapter}{LIST OF FIGURES}
+\listoffigures
+
+\chapter{Introduction}
+\pagenumbering{arabic}
+\input{Chapter1.tex}
+
+\chapter{Aerial Robotic Swarms}
+\input{Chapter2.tex}
+
+\chapter{System Design}
+\input{Chapter3.tex}
+
+\chapter{Hardware Design}
+\input{Chapter4.tex}
+
+\chapter{Implementation}
+\input{Chapter5.tex}
+
+\chapter{Testing Results}
+\input{Chapter6.tex}
+
+\chapter{Conclusion}
+\input{Chapter7.tex}
+
+\chapter{Future Prospects}
+\input{Chapter8.tex}
+
+\newpage
+\begin{appendices}
+\chapter{Scripts Used}
+\input{scripts.tex}
+\chapter{Configuration Files}
+\input{config.tex}
+\chapter{MAVLink Protocol}
+\input{mavlink.tex}
+\end{appendices}
+\newpage
+\bibliographystyle{unsrt}
+\bibliography{ref}
+
+\end{document}

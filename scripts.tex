@@ -1,0 +1,211 @@
+\doublespacing
+\section{ROS Code Structure}
+A ROS package was developed in order to perform the following functions using a launch file, thereby, reducing the effort significantly and providing a consolidated environment to the users.
+\begin{itemize}
+    \item Launch File for multiple MAVROS subscribers with different namespaces and
+parametric System Ids
+    \item RosNode to subscribe to multiple topics of multiple vehicles and synchronize
+the data based on timestamp
+    \item RosNode to handle the subscribed data, convert to a formatted array and
+publish at 1 single topic
+    \item Ros Nodes to process the data received and generate cmd\_vel for each vehicle
+    \item Custom array type messages
+\end{itemize}
+
+\noindent An array of custom message vehicle\_state is formed to represent the current state of the swarm given as swarm\_state.
+\\The swarm\_state message is given as:
+
+swarm\_ardupilot/vehicle\_state[] vehicles
+
+uint8 particles
+
+\noindent The vehicle\_state messgae comprises of: 
+
+float32 x
+
+float32 y
+
+float32 pitch
+
+float32 si
+
+int16 heading
+
+float32 groundspeed
+
+float32 airspeed
+
+int32 id
+
+float64 lat
+
+float64 lon
+
+int32 alt
+
+The following script subscribes to various nodes from different vehicles and provides their current state on a common topic "/publishing". Other nodes can subscribe to this topic and publish command velocities for each vehicle on their respective topics ($/id/mavros/setpoint\_velocity/cmd\_vel$).
+\lstset{frame=tb,
+  language=Python,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+\begin{lstlisting}
+arr = rospy.Publisher('/publishing', swarm_state, queue_size = 10)
+def callback(*args):
+	x=np.zeros(shape=(0))
+	y=np.zeros(shape=(0))
+	si=np.zeros(shape=(0))
+	vel=np.zeros(shape=(0))
+	pit=np.zeros(shape=(0))
+	al=np.zeros(shape=(0))
+	status=swarm_state()
+	n=num[0]
+	for i in range(0,n):	
+		x1=args[i].pose.position.x		
+		y1=args[i].pose.position.y
+		si1=((-1*(args[i+n].heading-90))%360)*3.1416/180
+		v1=args[i+n].groundspeed
+		x=np.append(x,x1)
+		y=np.append(y,y1)
+		si=np.append(si,si1)
+		vel=np.append(vel,v1)
+		al=np.append(al,args[i+n].altitude)
+		v=vehicle_state()
+		v.x=x1
+		v.y=y1
+		v.si=si1
+		v.heading=args[i+n].heading
+		v.groundspeed=v1
+		v.id=i
+		v.lat=args[i+2*n].latitude
+		v.lon=args[i+2*n].longitude
+		v.alt=args[i+n].altitude
+		v.pitch=euler_from_quaternion(args[i].pose.orientation).pitch
+		status.vehicles.append(v)
+		status.particles+=1
+	arr.publish(status)
+
+	for i in range(0,n):
+		[[x1,y1],[x2,y2]]=waypt[i]
+		u,a=lqr_coop.lqr_coop(x,y,si,vel,x1,y1,x2,y2,i)
+		message = TwistStamped()
+		v=vel[i]
+		v=v+a*0.25
+		if v<3:
+			v=3
+		elif v>8:
+			v=8	
+		vx=v*math.cos(si[i])
+		message.twist.linear.x = vx
+		vy=v*math.sin(si[i])
+		message.twist.linear.y = vy
+		message.twist.linear.z = 0.0
+		message.twist.angular.x = 0.0
+		message.twist.angular.y = 0.0
+		message.twist.angular.z = 1.0*u#/(2*3.1416)
+		pub[i].publish(message)
+
+def Yaw_calculation():
+        rospy.init_node('Yaw_calculation', anonymous = True)
+	pos=position_arr()
+	sta=state_arr()
+	nav=navsat_arr()
+	for i in range(1,num[0]+1):        
+		pos.position.append(message_filters.Subscriber ('/'+str(i)+'/mavros/local_position/pose', PoseStamped))
+        	 sta.state.append(message_filters.Subscriber ('/'+str(i)+'/mavros/vfr_hud', VFR_HUD))
+		nav.navsat.append(message_filters.Subscriber ('/'+str(i)+'/mavros/global_position/global', NavSatFix))
+        ts = message_filters.ApproximateTimeSynchronizer (pos.position+sta.state+nav.navsat, 10, 0.25, allow_headerless = True)
+        ts.registerCallback(callback)
+        rospy.spin()
+\end{lstlisting}
+
+\newpage
+\section{Swarming Scripts}
+
+\begin{lstlisting}
+class swarm_bot:
+    def __init__(self,n,s):
+        self.id=n
+        self.string=str(s)
+        self.velocity = [0,0]
+        print("Connecting to Vehicle id:",n)
+        self.vehicle = connect(self.string)#, wait_ready=True)
+        print("Connected")
+
+
+    def get_pos(self):
+        self.pos= [self.vehicle.location.global_frame.lat, self.vehicle.location.global_frame.lon]
+        return self.pos
+
+
+    def update_vel(self,v):
+        self.velocity=v       
+        velocity_x=v[0]
+        velocity_y=v[1]
+        velocity_z=0
+        """
+        Move vehicle in direction based on specified velocity vectors.
+        """
+        msg = self.vehicle.message_factory.
+              set_position_target_global_int_encode(
+            0,       # time_boot_ms (not used)
+            0, 0,    # target system, target component
+            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT, # frame
+            0b0000111111000111, # type_mask (only speeds enabled)
+            0, # lat_int - X Position in WGS84 frame in 1e7 * meters
+            0, # lon_int - Y Position in WGS84 frame in 1e7 * meters
+            0, # alt - Altitude in meters in AMSL altitude(not WGS84 if absolute or relative)
+            # altitude above terrain if GLOBAL_TERRAIN_ALT_INT
+            velocity_x, # X velocity in NED frame in m/s
+            velocity_y, # Y velocity in NED frame in m/s
+            velocity_z, # Z velocity in NED frame in m/s
+            0, 0, 0, # afx, afy, afz acceleration (not supported yet, ignored in GCS_Mavlink)
+            0, 0)    # yaw, yaw_rate (not supported yet, ignored in GCS_Mavlink)
+
+        self.vehicle.send_mavlink(msg)
+    
+
+    def arm_and_takeoff(self, aTargetAltitude):
+ 
+        print "Basic pre-arm checks",self.id
+
+        while not self.vehicle.is_armable:
+            print " Waiting for vehicle to initialise...",self.id
+            time.sleep(1)
+
+            
+        print "Arming motors",self.id
+        # Copter should arm in GUIDED mode
+        self.vehicle.mode = VehicleMode("GUIDED")
+        self.vehicle.armed = True
+
+        while not self.vehicle.armed:      
+            print " Waiting for arming...",self.id
+            time.sleep(1)
+
+        print "Taking off!",self.id
+        self.vehicle.simple_takeoff(aTargetAltitude)
+
+        while True:
+            print " Altitude: ", self.vehicle.location.global_relative_frame.alt      
+            if self.vehicle.location.global_relative_frame.alt >=aTargetAltitude*0.90: 
+                print "Reached target altitude",self.id
+                break
+            time.sleep(1)
+
+    def land(self):
+        self.vehicle.mode = VehicleMode("LAND")
+
+
+\end{lstlisting}
